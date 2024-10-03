@@ -19,13 +19,13 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: "8.3"
 
       - name: Check if composer.json exists
         id: check_files
         uses: andstor/file-existence-action@v1
         with:
-          files: 'composer.json'
+          files: "composer.json"
 
       - name: Run composer install if composer.json exists
         if: steps.check_files.outputs.files_exists == 'true'
@@ -40,11 +40,52 @@ jobs:
           name: php-app
           path: release.zip
 
-  deploy:
+  node_build:
     runs-on: ubuntu-latest
     needs: build
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Clear npm cache and install dependencies
+        run: |
+          rm -rf node_modules
+          rm -f package-lock.json
+          npm install --prefer-offline
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "v18.13.0"
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json
+
+      - name: Check if package-lock.json exists
+        id: check_files
+        run: '[ -f "package-lock.json" ] && echo "File exists" || echo "File does not exist"'
+
+      - name: Generate package-lock.json if not exists
+        run: npm ci --prefer-offline
+
+      - name: npm install, npm run build
+        run: |
+          npm ci
+          npm run build --if-present
+          npm ci --production
+
+      - name: Zip artifact for deployment
+        run: zip -r node-app.zip . -x node_modules/\* .git/\*
+
+      - name: upload artifact for deployment job
+        uses: actions/upload-artifact@v2
+        with:
+          name: node-app
+          path: .
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: node_build
     environment:
-      name: 'Production'
+      name: "Production"
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
       id-token: write #This is required for requesting the JWT
@@ -57,7 +98,12 @@ jobs:
 
       - name: Unzip artifact for deployment
         run: unzip release.zip
-      
+
+      - name: Download artifact from node build job
+        uses: actions/download-artifact@v2
+        with:
+          name: node-app
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -65,11 +111,10 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7D1A303F94484FD795F872EAE4559E91 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_399275E50E50455ABBB7F444728A8DBF }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: "Deploy to Azure Web App"
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'laravel'
-          slot-name: 'Production'
+          app-name: "laravel"
+          slot-name: "Production"
           package: .
-          
