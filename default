@@ -5,7 +5,7 @@ server {
     listen [::]:8080;
     root /home/site/wwwroot/public;
     index  index.php index.html index.htm;
-    server_name  example.com www.example.com;
+    server_name  laravel-btfce9hyb3eff9a3.japaneast-01.azurewebsites.net;
     port_in_redirect off;
     #This is just to fix request length too long issue
     client_max_body_size 5M;
