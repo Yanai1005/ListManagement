@@ -5,25 +5,21 @@ server {
     listen [::]:8080;
     root /home/site/wwwroot/public;
     index  index.php index.html index.htm;
-    server_name  laravel-btfce9hyb3eff9a3.japaneast-01.azurewebsites.net;
+    server_name  example.com www.example.com; 
     port_in_redirect off;
-    #This is just to fix request length too long issue
-    client_max_body_size 5M;
-    location / {
-      #index  index.php index.html index.htm hostingstart.html;
-      try_files $uri $uri/ /index.php$is_args$args;
+
+    location / {            
+        index  index.php index.html index.htm hostingstart.html;
+        try_files $uri $uri/ /index.php?$args; # Changed for Laravel
     }
 
-    location = /favicon.ico { log_not_found off; access_log off; }
-    location = /robots.txt { log_not_found off; access_log off; }
-    
     # redirect server error pages to the static page /50x.html
     #
-    #error_page   500 502 503 504  /50x.html;
-    #location = /50x.html {
-       #root   /html/;
-   #}
-
+    #error_page   500 502 503 504  /50x.html; # Commented out for Laravel so that Laravel debug mode pages are shown
+    location = /50x.html {
+        root   /html/;
+    }
+    
     # Disable .git directory
     location ~ /\.git {
         deny all;
@@ -32,8 +28,8 @@ server {
     }
 
     # Add locations of phpmyadmin here.
-    location ~* [^/]\.php(/|$) {
-        fastcgi_split_path_info ^(.+?\.[Pp][Hh][Pp])(|/.*)$;
+    location ~ [^/]\.php(/|$) {
+        fastcgi_split_path_info ^(.+?\.php)(|/.*)$;
         fastcgi_pass 127.0.0.1:9000;
         include fastcgi_params;
         fastcgi_param HTTP_PROXY "";
@@ -41,12 +37,12 @@ server {
         fastcgi_param PATH_INFO $fastcgi_path_info;
         fastcgi_param QUERY_STRING $query_string;
         fastcgi_intercept_errors on;
-        fastcgi_connect_timeout         300;
-        fastcgi_send_timeout           3600;
+        fastcgi_connect_timeout         300; 
+        fastcgi_send_timeout           3600; 
         fastcgi_read_timeout           3600;
         fastcgi_buffer_size 128k;
         fastcgi_buffers 4 256k;
-        fastcgi_busy_buffers_size 256k;                                            
+        fastcgi_busy_buffers_size 256k;
         fastcgi_temp_file_write_size 256k;
     }
 }
